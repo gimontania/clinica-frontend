@@ -1,0 +1,55 @@
+import type { Paciente } from '../types/paciente';
+
+//datos de ejemplo para mostrar en la página
+export const pacientes: Paciente[] = [
+  {
+    id: '1',
+    nombre: 'Sofía',
+    apellido: 'Martínez',
+    email: 'sofia.martinez@email.com',
+    telefono: '11-4567-1234',
+    especialidadAsignada: 'Cardiología',
+    ultimaCita: '10/10/2026',
+    estado: 'activo',
+  },
+  {
+    id: '2',
+    nombre: 'Mateo',
+    apellido: 'González',
+    email: 'mateo.gonzalez@email.com',
+    telefono: '11-4567-2345',
+    especialidadAsignada: 'Dermatología',
+    ultimaCita: '08/10/2026',
+    estado: 'en_espera',
+  },
+  {
+    id: '3',
+    nombre: 'Valentina',
+    apellido: 'Rodríguez',
+    email: 'valentina.rodriguez@email.com',
+    telefono: '11-4567-3456',
+    especialidadAsignada: 'Pediatría',
+    ultimaCita: '05/10/2026',
+    estado: 'activo',
+  },
+  {
+    id: '4',
+    nombre: 'Benjamín',
+    apellido: 'Fernández',
+    email: 'benjamin.fernandez@email.com',
+    telefono: '11-4567-4567',
+    especialidadAsignada: 'Clínica médica',
+    ultimaCita: '01/10/2026',
+    estado: 'inactivo',
+  },
+  {
+    id: '5',
+    nombre: 'Martina',
+    apellido: 'López',
+    email: 'martina.lopez@email.com',
+    telefono: '11-4567-5678',
+    especialidadAsignada: 'Oftalmología',
+    ultimaCita: '12/10/2026',
+    estado: 'en_espera',
+  },
+];
