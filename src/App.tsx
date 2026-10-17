@@ -1,6 +1,7 @@
+import { useState } from 'react';
 import MetricCard from './components/MetricCard';
 import StatusBadge from './components/StatusBadge';
-import { useState } from 'react';
+import PaginaPacientes from './components/pacientes/PaginaPacientes';
 import type { Metrica } from './types';
 
 function App() {
@@ -10,7 +11,12 @@ function App() {
   //guardamos la cantidad de pacientes
   const [pacientes, setPacientes] = useState(120);
 
-  //definimos las métricas que mostraremos en el Dashboard
+  //controlamos qué página mostramos
+  const [pagina, setPagina] = useState<'dashboard' | 'pacientes'>(
+    'dashboard',
+  );
+
+  //definimos las métricas del Dashboard
   const metricas: Metrica[] = [
     {
       id: 'pacientes',
@@ -46,24 +52,51 @@ function App() {
     },
   ];
 
+  // Mostramos la página seleccionada
+  if (pagina === 'pacientes') {
+    return (
+      <>
+        <nav className="bg-white p-4 shadow-sm">
+          <button
+            onClick={() => setPagina('dashboard')}
+            className="rounded-lg bg-blue-600 px-4 py-2 text-white"
+          >
+            Volver al Dashboard
+          </button>
+        </nav>
+
+        <PaginaPacientes />
+      </>
+    );
+  }
+
   return (
-    //main, contenedor principal
     <main className="min-h-screen bg-slate-100 p-8">
       <h1 className="mb-6 text-3xl font-bold text-blue-600">
         Clínica Salud Integral
       </h1>
 
-      {/*mostramos el estado del sistema*/}
-      <StatusBadge activo={activo} />
+      {/*botón para abrir la página de pacientes*/}
+      <button
+        onClick={() => setPagina('pacientes')}
+        className="rounded-lg bg-indigo-600 px-4 py-2 text-white"
+      >
+        Ver pacientes
+      </button>
 
-      {/*mostramos un aviso cuando el sistema está en mantenimiento*/}
+      {/*mostramos el estado del sistema*/}
+      <div className="mt-4">
+        <StatusBadge activo={activo} />
+      </div>
+
+      {/*aviso de mantenimiento*/}
       {!activo && (
         <p className="mt-4 rounded-lg bg-rose-100 p-3 text-rose-700">
           El sistema está en mantenimiento.
         </p>
       )}
 
-      {/*botón para cambiar el estado del sistema*/}
+      {/*cambiamos el estado del sistema*/}
       <button
         onClick={() => setActivo(!activo)}
         className="mt-4 rounded-lg bg-blue-600 px-4 py-2 text-white"
@@ -72,13 +105,13 @@ function App() {
       </button>
 
       {/*mostramos las tarjetas de métricas*/}
-      <section className="mt-8 grid grid-cols-1 gap-4 md:grid-cols-2"> {/*con grid organizamos los elementos en una cuadrícula, como si fueran filas y columnas, ap es el espacio entre las tarjetas*/}
+      <section className="mt-8 grid grid-cols-1 gap-4 md:grid-cols-2">
         {metricas.map((metrica) => (
           <MetricCard key={metrica.id} metrica={metrica} />
         ))}
       </section>
 
-      {/*botones para modificar la cantidad de pacientes*/}
+      {/*modificamos la cantidad de pacientes*/}
       <div className="mt-6 flex gap-3">
         <button
           onClick={() => setPacientes(pacientes - 1)}
