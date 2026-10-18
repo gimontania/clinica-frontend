@@ -1,4 +1,5 @@
 import { useState } from 'react';
+import { useNavigate } from 'react-router-dom';
 import { useForm } from 'react-hook-form';
 import { zodResolver } from '@hookform/resolvers/zod';
 import { citaSchema, type CitaFormData } from '../../schemas/citaSchema';
@@ -7,6 +8,9 @@ import { useMedicos } from '../../hooks/useMedicos';
 export default function FormularioCita() {
   const { medicos, cargando } = useMedicos();
   const [citaAgendada, setCitaAgendada] = useState<CitaFormData | null>(null);
+
+  //navegamos a la página anterior
+  const navegar = useNavigate();
 
   const {
     register,
@@ -175,9 +179,16 @@ export default function FormularioCita() {
           )}
         </div>
 
-        <button type="submit" disabled={isSubmitting}>
-          {isSubmitting ? 'Agendando...' : 'Agendar cita'}
-        </button>
+        {/*botones del formulario*/}
+        <div className="mt-4 flex flex-wrap gap-3">
+          <button type="submit" disabled={isSubmitting}>
+            {isSubmitting ? 'Agendando...' : 'Agendar cita'}
+          </button>
+
+          <button type="button" onClick={() => navegar(-1)}>
+            Cancelar
+          </button>
+        </div>
       </form>
     </section>
   );

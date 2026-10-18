@@ -1,4 +1,5 @@
 import { useState } from 'react';
+import { Link } from 'react-router-dom';
 import { pacientes as pacientesIniciales } from '../../data/pacientes';
 import type { Paciente } from '../../types/paciente';
 import BuscadorPacientes from './BuscadorPacientes';
@@ -38,19 +39,20 @@ function PaginaPacientes() {
     }
 
     //creamos el nuevo paciente
-const nuevoPaciente: Paciente = {
-  id: Date.now().toString(),
-  nombre: nombre.trim(),
-  apellido: apellido.trim(),
-  email: email.trim(),
-  telefono: '',
-  especialidadAsignada: '',
-  ultimaCita: '',
-  estado,
-};
+    const nuevoPaciente: Paciente = {
+      id: Date.now().toString(),
+      nombre: nombre.trim(),
+      apellido: apellido.trim(),
+      email: email.trim(),
+      telefono: '',
+      especialidadAsignada: '',
+      ultimaCita: '',
+      estado,
+    };
 
     //agregamos sin modificar el array original
     setPacientesEstado((prev) => [...prev, nuevoPaciente]);
+
     //limpiamos el formulario
     setNombre('');
     setApellido('');
@@ -103,22 +105,25 @@ const nuevoPaciente: Paciente = {
         <div className="mb-4">
           <BuscadorPacientes
             value={busqueda}
-            onChange={setBusqueda}/>
+            onChange={setBusqueda}
+          />
         </div>
 
         {/*filtro por estado*/}
         <div className="mb-4">
           <label
             htmlFor="filtroEstado"
-            className="mb-2 block text-sm font-medium text-gray-700">
-              Filtrar por estado
+            className="mb-2 block text-sm font-medium text-gray-700"
+          >
+            Filtrar por estado
           </label>
 
           <select
             id="filtroEstado"
             value={estadoFiltro}
             onChange={(e) => setEstadoFiltro(e.target.value)}
-            className="w-full rounded-lg border border-gray-300 p-2">
+            className="w-full rounded-lg border border-gray-300 p-2"
+          >
             <option value="Todos">Todos</option>
             <option value="activo">Activo</option>
             <option value="inactivo">Inactivo</option>
@@ -127,12 +132,15 @@ const nuevoPaciente: Paciente = {
         </div>
 
         {/*limpiamos ambos filtros*/}
-        <button type ="button" onClick={() => {
+        <button
+          type="button"
+          onClick={() => {
             setBusqueda('');
             setEstadoFiltro('Todos');
           }}
-          className="rounded-lg bg-gray-200 px-4 py-2 text-sm font-medium text-gray-700 hover:bg-gray-300">
-            Limpiar filtros
+          className="rounded-lg bg-gray-200 px-4 py-2 text-sm font-medium text-gray-700 hover:bg-gray-300"
+        >
+          Limpiar filtros
         </button>
 
         <p className="mt-4 text-sm text-gray-500">
@@ -151,19 +159,20 @@ const nuevoPaciente: Paciente = {
             e.preventDefault();
             agregarPaciente();
           }}
-          className="grid grid-cols-1 gap-4 sm:grid-cols-2">
+          className="grid grid-cols-1 gap-4 sm:grid-cols-2"
+        >
           {/*nombre*/}
           <div>
             <label htmlFor="nombre" className="mb-1 block text-sm">
               Nombre *
             </label>
-
             <input
               id="nombre"
               type="text"
               value={nombre}
               onChange={(e) => setNombre(e.target.value)}
-              className="w-full rounded-lg border border-gray-300 p-2"/>
+              className="w-full rounded-lg border border-gray-300 p-2"
+            />
           </div>
 
           {/*apellido*/}
@@ -171,13 +180,13 @@ const nuevoPaciente: Paciente = {
             <label htmlFor="apellido" className="mb-1 block text-sm">
               Apellido
             </label>
-
             <input
               id="apellido"
               type="text"
               value={apellido}
               onChange={(e) => setApellido(e.target.value)}
-              className="w-full rounded-lg border border-gray-300 p-2"/>
+              className="w-full rounded-lg border border-gray-300 p-2"
+            />
           </div>
 
           {/*email*/}
@@ -185,13 +194,13 @@ const nuevoPaciente: Paciente = {
             <label htmlFor="email" className="mb-1 block text-sm">
               Email *
             </label>
-
             <input
               id="email"
               type="email"
               value={email}
               onChange={(e) => setEmail(e.target.value)}
-              className="w-full rounded-lg border border-gray-300 p-2"/>
+              className="w-full rounded-lg border border-gray-300 p-2"
+            />
           </div>
 
           {/*estado inicial*/}
@@ -199,14 +208,14 @@ const nuevoPaciente: Paciente = {
             <label htmlFor="estado" className="mb-1 block text-sm">
               Estado
             </label>
-
             <select
               id="estado"
               value={estado}
               onChange={(e) =>
                 setEstado(e.target.value as Paciente['estado'])
               }
-              className="w-full rounded-lg border border-gray-300 p-2">
+              className="w-full rounded-lg border border-gray-300 p-2"
+            >
               <option value="activo">Activo</option>
               <option value="inactivo">Inactivo</option>
               <option value="en_espera">En espera</option>
@@ -220,8 +229,10 @@ const nuevoPaciente: Paciente = {
             </p>
           )}
 
-          <button type="submit"
-            className="rounded-lg bg-blue-600 px-4 py-2 font-medium text-white hover:bg-blue-700 sm:col-span-2">
+          <button
+            type="submit"
+            className="rounded-lg bg-blue-600 px-4 py-2 font-medium text-white hover:bg-blue-700 sm:col-span-2"
+          >
             Agregar paciente
           </button>
         </form>
@@ -233,11 +244,22 @@ const nuevoPaciente: Paciente = {
           <div key={paciente.id}>
             <PacienteRow paciente={paciente} />
 
+            {/*enlace al detalle del paciente*/}
+            <div className="mt-2 rounded-lg bg-white p-3">
+              <Link
+                to={`/pacientes/${paciente.id}`}
+                className="font-medium text-blue-600 hover:text-blue-800"
+              >
+                Ver detalle →
+              </Link>
+            </div>
+
             {/*controles para modificar el paciente*/}
             <div className="mt-2 flex flex-wrap items-center gap-3 rounded-lg bg-white p-3">
               <label
                 htmlFor={`estado-${paciente.id}`}
-                className="text-sm text-gray-700">
+                className="text-sm text-gray-700"
+              >
                 Cambiar estado:
               </label>
 
@@ -250,15 +272,18 @@ const nuevoPaciente: Paciente = {
                     e.target.value as Paciente['estado']
                   )
                 }
-                className="rounded-lg border border-gray-300 p-2">
+                className="rounded-lg border border-gray-300 p-2"
+              >
                 <option value="activo">Activo</option>
                 <option value="inactivo">Inactivo</option>
                 <option value="en_espera">En espera</option>
               </select>
 
-              <button type="button" onClick={() => 
-              eliminarPaciente(paciente.id)}
-                className="rounded-lg bg-red-600 px-3 py-2 text-sm font-medium text-white hover:bg-red-700">
+              <button
+                type="button"
+                onClick={() => eliminarPaciente(paciente.id)}
+                className="rounded-lg bg-red-600 px-3 py-2 text-sm font-medium text-white hover:bg-red-700"
+              >
                 Eliminar
               </button>
             </div>
