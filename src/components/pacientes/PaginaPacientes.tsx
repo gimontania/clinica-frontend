@@ -38,13 +38,16 @@ function PaginaPacientes() {
     }
 
     //creamos el nuevo paciente
-    const nuevoPaciente: Paciente = {
-      id: Date.now(),
-      nombre: nombre.trim(),
-      apellido: apellido.trim(),
-      email: email.trim(),
-      estado,
-    };
+const nuevoPaciente: Paciente = {
+  id: Date.now().toString(),
+  nombre: nombre.trim(),
+  apellido: apellido.trim(),
+  email: email.trim(),
+  telefono: '',
+  especialidadAsignada: '',
+  ultimaCita: '',
+  estado,
+};
 
     //agregamos sin modificar el array original
     setPacientesEstado((prev) => [...prev, nuevoPaciente]);
