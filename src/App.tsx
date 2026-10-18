@@ -2,6 +2,7 @@ import { useState } from 'react';
 import MetricCard from './components/MetricCard';
 import StatusBadge from './components/StatusBadge';
 import PaginaPacientes from './components/pacientes/PaginaPacientes';
+import FormularioCita from './components/citas/FormularioCita';
 import type { Metrica } from './types';
 
 function App() {
@@ -12,9 +13,9 @@ function App() {
   const [pacientes, setPacientes] = useState(120);
 
   //controlamos qué página mostramos
-  const [pagina, setPagina] = useState<'dashboard' | 'pacientes'>(
-    'dashboard',
-  );
+  const [pagina, setPagina] = useState<
+    'dashboard' | 'pacientes' | 'citas'
+  >('dashboard');
 
   //definimos las métricas del Dashboard
   const metricas: Metrica[] = [
@@ -52,7 +53,7 @@ function App() {
     },
   ];
 
-  // Mostramos la página seleccionada
+  //mostramos la página de pacientes
   if (pagina === 'pacientes') {
     return (
       <>
@@ -70,6 +71,24 @@ function App() {
     );
   }
 
+  //mostramos el formulario de citas
+  if (pagina === 'citas') {
+    return (
+      <>
+        <nav className="bg-white p-4 shadow-sm">
+          <button
+            onClick={() => setPagina('dashboard')}
+            className="rounded-lg bg-blue-600 px-4 py-2 text-white"
+          >
+            Volver al Dashboard
+          </button>
+        </nav>
+
+        <FormularioCita />
+      </>
+    );
+  }
+
   return (
     <main className="min-h-screen bg-slate-100 p-8">
       <h1 className="mb-6 text-3xl font-bold text-blue-600">
@@ -82,6 +101,14 @@ function App() {
         className="rounded-lg bg-indigo-600 px-4 py-2 text-white"
       >
         Ver pacientes
+      </button>
+
+      {/*botón para abrir el formulario de citas*/}
+      <button
+        onClick={() => setPagina('citas')}
+        className="ml-3 rounded-lg bg-emerald-600 px-4 py-2 text-white"
+      >
+        Agendar cita
       </button>
 
       {/*mostramos el estado del sistema*/}
