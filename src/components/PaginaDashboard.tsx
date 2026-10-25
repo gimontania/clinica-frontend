@@ -1,18 +1,87 @@
-import { useState } from 'react';
+import { useEffect, useState } from 'react';
 import { useNavigate } from 'react-router-dom';
 import MetricCard from './MetricCard';
 import StatusBadge from './StatusBadge';
 import type { Metrica } from '../types';
+import { api } from '../lib/axios';
+
+//definimos los datos que devuelve la API
+interface RespuestaApi {
+  data: unknown[] | number;
+  total?: number;
+}
 
 export default function PaginaDashboard() {
   //guardamos si el sistema está funcionando
   const [activo, setActivo] = useState(true);
 
-  //guardamos la cantidad de pacientes
-  const [pacientes, setPacientes] = useState(120);
+  //guardamos las cantidades de las métricas
+  const [pacientes, setPacientes] = useState(0);
+  const [medicos, setMedicos] = useState(0);
+  const [citasProgramadas, setCitasProgramadas] = useState(0);
+  const [completadas, setCompletadas] = useState(0);
+
+  //guardamos el estado de carga y los errores
+  const [cargando, setCargando] = useState(true);
+  const [error, setError] = useState('');
 
   //navegamos a otras páginas
   const navegar = useNavigate();
+
+  //obtenemos las métricas desde el backend
+  useEffect(() => {
+    async function cargarMetricas() {
+      try {
+        setCargando(true);
+        setError('');
+
+        //consultamos los cuatro endpoints
+        const [respuestaPacientes, respuestaMedicos, respuestaProgramadas, respuestaCompletadas] =
+          await Promise.all([
+            api.get<RespuestaApi>('/pacientes'),
+            api.get<RespuestaApi>('/medicos'),
+            api.get<RespuestaApi>('/citas?estado=Programada'),
+            api.get<RespuestaApi>('/citas?estado=Completada'),
+          ]);
+
+        //guardamos las cantidades reales
+        setPacientes(
+          respuestaPacientes.data.total ??
+          (Array.isArray(respuestaPacientes.data.data)
+            ? respuestaPacientes.data.data.length
+            : 0)
+        );
+
+        setMedicos(
+          respuestaMedicos.data.total ??
+          (Array.isArray(respuestaMedicos.data.data)
+            ? respuestaMedicos.data.data.length
+            : 0)
+        );
+
+        setCitasProgramadas(
+          respuestaProgramadas.data.total ??
+          (Array.isArray(respuestaProgramadas.data.data)
+            ? respuestaProgramadas.data.data.length
+            : 0)
+        );
+
+        setCompletadas(
+          respuestaCompletadas.data.total ??
+          (Array.isArray(respuestaCompletadas.data.data)
+            ? respuestaCompletadas.data.data.length
+            : 0)
+        );
+      } catch {
+        //mostramos un mensaje si falla alguna consulta
+        setError('No se pudieron cargar las métricas.');
+      } finally {
+        setCargando(false);
+      }
+    }
+
+    cargarMetricas();
+  }, []);
 
   //definimos las métricas del Dashboard
   const metricas: Metrica[] = [
@@ -25,28 +94,28 @@ export default function PaginaDashboard() {
       icono: '👤',
     },
     {
+      id: 'medicos',
+      titulo: 'Médicos',
+      valor: medicos,
+      descripcion: 'Médicos registrados',
+      tendencia: 'neutra',
+      icono: '🩺',
+    },
+    {
       id: 'citas',
-      titulo: 'Citas Hoy',
-      valor: 18,
-      descripcion: 'Citas programadas',
+      titulo: 'Citas Programadas',
+      valor: citasProgramadas,
+      descripcion: 'Citas pendientes de atención',
       tendencia: 'neutra',
       icono: '📅',
     },
     {
-      id: 'pendientes',
-      titulo: 'Consultas Pendientes',
-      valor: 5,
-      descripcion: 'Consultas por atender',
-      tendencia: 'negativa',
-      icono: '📝',
-    },
-    {
-      id: 'disponibilidad',
-      titulo: 'Disponibilidad',
-      valor: '85%',
-      descripcion: 'Turnos disponibles',
+      id: 'completadas',
+      titulo: 'Completadas Hoy',
+      valor: completadas,
+      descripcion: 'Citas completadas',
       tendencia: 'positiva',
-      icono: '🕒',
+      icono: '✅',
     },
   ];
 
@@ -92,29 +161,33 @@ export default function PaginaDashboard() {
         Cambiar estado
       </button>
 
+      {/*mostramos la carga o el error de la API*/}
+      {cargando && (
+        <p className="mt-6 text-slate-600" role="status">
+          Cargando métricas...
+        </p>
+      )}
+
+      {error && (
+        <div className="mt-6 rounded-lg bg-rose-100 p-4 text-rose-700" role="alert">
+          <p>{error}</p>
+          <button
+            onClick={() => window.location.reload()}
+            className="mt-2 rounded-lg bg-rose-600 px-4 py-2 text-white"
+          >
+            Reintentar
+          </button>
+        </div>
+      )}
+
       {/*mostramos las tarjetas de métricas*/}
-      <section className="mt-8 grid grid-cols-1 gap-4 md:grid-cols-2">
-        {metricas.map((metrica) => (
-          <MetricCard key={metrica.id} metrica={metrica} />
-        ))}
-      </section>
-
-      {/*modificamos la cantidad de pacientes*/}
-      <div className="mt-6 flex gap-3">
-        <button
-          onClick={() => setPacientes(pacientes - 1)}
-          className="rounded-lg bg-rose-600 px-4 py-2 text-white"
-        >
-          - Paciente
-        </button>
-
-        <button
-          onClick={() => setPacientes(pacientes + 1)}
-          className="rounded-lg bg-emerald-600 px-4 py-2 text-white"
-        >
-          + Paciente
-        </button>
-      </div>
+      {!cargando && !error && (
+        <section className="mt-8 grid grid-cols-1 gap-4 md:grid-cols-2">
+          {metricas.map((metrica) => (
+            <MetricCard key={metrica.id} metrica={metrica} />
+          ))}
+        </section>
+      )}
     </main>
   );
 }
