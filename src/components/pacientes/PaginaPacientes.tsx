@@ -1,9 +1,23 @@
 import { useEffect, useState } from 'react';
 import { Link } from 'react-router-dom';
+import { useForm } from 'react-hook-form';
+import { zodResolver } from '@hookform/resolvers/zod';
+import toast from 'react-hot-toast';
 import type { Paciente } from '../../types/paciente';
 import { api } from '../../lib/axios';
+import {
+  create as crearPaciente,
+  update as actualizarPaciente,
+  remove as eliminarPacienteApi,
+} from '../../services/pacientes';
+import {
+  pacienteSchema,
+  type PacienteFormData,
+} from '../../schemas/pacienteSchema';
+import { extraerMensajeError } from '../../lib/errores';
 import BuscadorPacientes from './BuscadorPacientes';
 import PacienteRow from './PacienteRow';
+import ModalConfirmacion from '../ModalConfirmacion';
 
 //definimos la respuesta del backend
 interface RespuestaPacientes {
@@ -13,27 +27,44 @@ interface RespuestaPacientes {
 
 //página principal de pacientes
 function PaginaPacientes() {
-  //guardamos los pacientes en el estado
+  //guardamos los pacientes
   const [pacientesEstado, setPacientesEstado] = useState<Paciente[]>([]);
 
-  //guardamos la cantidad real de pacientes
+  //guardamos la cantidad de pacientes
   const [totalPacientes, setTotalPacientes] = useState(0);
 
-  //guardamos el estado de carga
+  //controlamos la carga
   const [cargando, setCargando] = useState(true);
 
-  //guardamos los valores de los filtros
+  //guardamos los filtros
   const [busqueda, setBusqueda] = useState('');
   const [estadoFiltro, setEstadoFiltro] = useState('Todos');
 
-  //guardamos los datos del formulario
-  const [nombre, setNombre] = useState('');
-  const [apellido, setApellido] = useState('');
-  const [email, setEmail] = useState('');
-  const [estado, setEstado] = useState<Paciente['estado']>('activo');
-
   //guardamos los mensajes de error
   const [error, setError] = useState('');
+
+  //controlamos el paciente que vamos a eliminar
+  const [pacienteAEliminar, setPacienteAEliminar] =
+    useState<Paciente | null>(null);
+
+  //guardamos el paciente que se está eliminando
+  const [eliminandoId, setEliminandoId] = useState<string | null>(null);
+
+  //configuramos el formulario con sus validaciones
+  const {
+    register,
+    handleSubmit,
+    reset,
+    formState: { errors, isSubmitting },
+  } = useForm<PacienteFormData>({
+    resolver: zodResolver(pacienteSchema),
+    defaultValues: {
+      nombre: '',
+      apellido: '',
+      email: '',
+      estado: 'activo',
+    },
+  });
 
   //consultamos los pacientes al abrir la página
   async function cargarPacientes() {
@@ -45,8 +76,9 @@ function PaginaPacientes() {
 
       setPacientesEstado(respuesta.data.data);
       setTotalPacientes(respuesta.data.total);
-    } catch {
-      setError('No se pudieron cargar los pacientes. Intentá nuevamente.');
+    } catch (err: unknown) {
+      const mensaje = extraerMensajeError(err);
+      setError(mensaje);
     } finally {
       setCargando(false);
     }
@@ -56,67 +88,87 @@ function PaginaPacientes() {
     cargarPacientes();
   }, []);
 
-  //filtramos por nombre y estado al mismo tiempo
+  //filtramos por nombre y estado
   const pacientesFiltrados = pacientesEstado.filter(
     (paciente) =>
       paciente.nombre.toLowerCase().includes(busqueda.toLowerCase()) &&
-      (estadoFiltro === 'Todos' || paciente.estado === estadoFiltro)
+      (estadoFiltro === 'Todos' || paciente.estado === estadoFiltro),
   );
 
-  //agregamos un paciente nuevo a la lista local
-  function agregarPaciente() {
-    //validamos los campos obligatorios
-    if (!nombre.trim() || !email.trim()) {
-      setError('Nombre y email son obligatorios');
-      return;
+  //registramos un paciente en la API
+  async function agregarPaciente(datos: PacienteFormData) {
+    try {
+      setError('');
+
+      const respuesta = await crearPaciente({
+        ...datos,
+        telefono: '',
+        especialidadAsignada: '',
+        ultimaCita: '',
+      });
+
+      //agregamos el paciente devuelto por la API
+      setPacientesEstado((prev) => [...prev, respuesta.data]);
+      setTotalPacientes((prev) => prev + 1);
+
+      //limpiamos el formulario
+      reset();
+
+      toast.success('Paciente registrado');
+    } catch (err: unknown) {
+      toast.error(extraerMensajeError(err));
     }
-
-    //creamos el nuevo paciente
-    const nuevoPaciente: Paciente = {
-      id: Date.now().toString(),
-      nombre: nombre.trim(),
-      apellido: apellido.trim(),
-      email: email.trim(),
-      telefono: '',
-      especialidadAsignada: '',
-      ultimaCita: '',
-      estado,
-    };
-
-    //agregamos el paciente a la lista
-    setPacientesEstado((prev) => [...prev, nuevoPaciente]);
-    setTotalPacientes((prev) => prev + 1);
-
-    //limpiamos el formulario
-    setNombre('');
-    setApellido('');
-    setEmail('');
-    setEstado('activo');
-    setError('');
   }
 
-  //cambiamos el estado de un paciente en la lista local
-  function cambiarEstado(id: Paciente['id'], nuevoEstado: Paciente['estado']) {
+  //actualizamos el estado del paciente en la API
+  async function cambiarEstado(
+    id: Paciente['id'],
+    nuevoEstado: Paciente['estado'],
+  ) {
+    const pacientesAnteriores = pacientesEstado;
+
+    //actualizamos la pantalla inmediatamente
     setPacientesEstado((prev) =>
       prev.map((paciente) =>
         paciente.id === id
           ? { ...paciente, estado: nuevoEstado }
-          : paciente
-      )
+          : paciente,
+      ),
     );
+
+    try {
+      await actualizarPaciente(id, { estado: nuevoEstado });
+    } catch (err: unknown) {
+      //recuperamos el estado anterior si falla
+      setPacientesEstado(pacientesAnteriores);
+      toast.error(extraerMensajeError(err));
+    }
   }
 
-  //eliminamos un paciente de la lista local
-  function eliminarPaciente(id: Paciente['id']) {
-    const confirmar = window.confirm(
-      '¿Confirmas que deseas eliminar este paciente?'
-    );
+  //eliminamos el paciente confirmado
+  async function eliminarPaciente() {
+    if (!pacienteAEliminar) return;
 
-    if (confirmar) {
+    const id = pacienteAEliminar.id;
+
+    try {
+      setEliminandoId(id);
+
+      await eliminarPacienteApi(id);
+
+      //quitamos el paciente de la lista
       setPacientesEstado((prev) =>
-        prev.filter((paciente) => paciente.id !== id)
+        prev.filter((paciente) => paciente.id !== id),
       );
+
       setTotalPacientes((prev) => Math.max(0, prev - 1));
+      setPacienteAEliminar(null);
+
+      toast.success('Paciente eliminado');
+    } catch (err: unknown) {
+      toast.error(extraerMensajeError(err));
+    } finally {
+      setEliminandoId(null);
     }
   }
 
@@ -127,7 +179,9 @@ function PaginaPacientes() {
         <p className="mb-2 text-sm font-medium text-blue-600">
           Gestión de clínica
         </p>
+
         <h1 className="text-3xl font-bold text-gray-900">Pacientes</h1>
+
         <p className="mt-2 text-gray-500">
           Consulta la información de tus pacientes.
         </p>
@@ -141,8 +195,12 @@ function PaginaPacientes() {
       )}
 
       {error && (
-        <div className="mb-4 rounded-lg bg-red-100 p-4 text-red-700" role="alert">
+        <div
+          className="mb-4 rounded-lg bg-red-100 p-4 text-red-700"
+          role="alert"
+        >
           <p>{error}</p>
+
           <button
             type="button"
             onClick={cargarPacientes}
@@ -159,7 +217,7 @@ function PaginaPacientes() {
           <BuscadorPacientes value={busqueda} onChange={setBusqueda} />
         </div>
 
-        {/*filtro por estado*/}
+        {/*filtramos por estado*/}
         <div className="mb-4">
           <label
             htmlFor="filtroEstado"
@@ -181,7 +239,7 @@ function PaginaPacientes() {
           </select>
         </div>
 
-        {/*limpiamos ambos filtros*/}
+        {/*limpiamos los filtros*/}
         <button
           type="button"
           onClick={() => {
@@ -205,24 +263,29 @@ function PaginaPacientes() {
         </h2>
 
         <form
-          onSubmit={(e) => {
-            e.preventDefault();
-            agregarPaciente();
-          }}
+          onSubmit={handleSubmit(agregarPaciente)}
           className="grid grid-cols-1 gap-4 sm:grid-cols-2"
+          noValidate
         >
           {/*nombre*/}
           <div>
             <label htmlFor="nombre" className="mb-1 block text-sm">
               Nombre *
             </label>
+
             <input
               id="nombre"
               type="text"
-              value={nombre}
-              onChange={(e) => setNombre(e.target.value)}
+              {...register('nombre')}
+              aria-invalid={!!errors.nombre}
               className="w-full rounded-lg border border-gray-300 p-2"
             />
+
+            {errors.nombre && (
+              <p className="text-sm text-red-600">
+                {errors.nombre.message}
+              </p>
+            )}
           </div>
 
           {/*apellido*/}
@@ -230,11 +293,11 @@ function PaginaPacientes() {
             <label htmlFor="apellido" className="mb-1 block text-sm">
               Apellido
             </label>
+
             <input
               id="apellido"
               type="text"
-              value={apellido}
-              onChange={(e) => setApellido(e.target.value)}
+              {...register('apellido')}
               className="w-full rounded-lg border border-gray-300 p-2"
             />
           </div>
@@ -244,13 +307,20 @@ function PaginaPacientes() {
             <label htmlFor="email" className="mb-1 block text-sm">
               Email *
             </label>
+
             <input
               id="email"
               type="email"
-              value={email}
-              onChange={(e) => setEmail(e.target.value)}
+              {...register('email')}
+              aria-invalid={!!errors.email}
               className="w-full rounded-lg border border-gray-300 p-2"
             />
+
+            {errors.email && (
+              <p className="text-sm text-red-600">
+                {errors.email.message}
+              </p>
+            )}
           </div>
 
           {/*estado inicial*/}
@@ -258,12 +328,10 @@ function PaginaPacientes() {
             <label htmlFor="estado" className="mb-1 block text-sm">
               Estado
             </label>
+
             <select
               id="estado"
-              value={estado}
-              onChange={(e) =>
-                setEstado(e.target.value as Paciente['estado'])
-              }
+              {...register('estado')}
               className="w-full rounded-lg border border-gray-300 p-2"
             >
               <option value="activo">Activo</option>
@@ -272,16 +340,12 @@ function PaginaPacientes() {
             </select>
           </div>
 
-          {/*mensaje de error del formulario*/}
-          {error && (
-            <p className="text-sm text-red-600 sm:col-span-2">{error}</p>
-          )}
-
           <button
             type="submit"
-            className="rounded-lg bg-blue-600 px-4 py-2 font-medium text-white hover:bg-blue-700 sm:col-span-2"
+            disabled={isSubmitting}
+            className="rounded-lg bg-blue-600 px-4 py-2 font-medium text-white hover:bg-blue-700 disabled:opacity-50 sm:col-span-2"
           >
-            Agregar paciente
+            {isSubmitting ? 'Registrando...' : 'Agregar paciente'}
           </button>
         </form>
       </section>
@@ -303,7 +367,7 @@ function PaginaPacientes() {
                 </Link>
               </div>
 
-              {/*controles para modificar el paciente*/}
+              {/*controles del paciente*/}
               <div className="mt-2 flex flex-wrap items-center gap-3 rounded-lg bg-white p-3">
                 <label
                   htmlFor={`estado-${paciente.id}`}
@@ -318,7 +382,7 @@ function PaginaPacientes() {
                   onChange={(e) =>
                     cambiarEstado(
                       paciente.id,
-                      e.target.value as Paciente['estado']
+                      e.target.value as Paciente['estado'],
                     )
                   }
                   className="rounded-lg border border-gray-300 p-2"
@@ -330,16 +394,29 @@ function PaginaPacientes() {
 
                 <button
                   type="button"
-                  onClick={() => eliminarPaciente(paciente.id)}
-                  className="rounded-lg bg-red-600 px-3 py-2 text-sm font-medium text-white hover:bg-red-700"
+                  onClick={() => setPacienteAEliminar(paciente)}
+                  disabled={eliminandoId === paciente.id}
+                  className="rounded-lg bg-red-600 px-3 py-2 text-sm font-medium text-white hover:bg-red-700 disabled:opacity-50"
                 >
-                  Eliminar
+                  {eliminandoId === paciente.id
+                    ? 'Eliminando...'
+                    : 'Eliminar'}
                 </button>
               </div>
             </div>
           ))}
         </section>
       )}
+
+      {/*confirmamos antes de eliminar*/}
+      <ModalConfirmacion
+        abierto={pacienteAEliminar !== null}
+        titulo="Eliminar paciente"
+        mensaje={`¿Confirmás que deseas eliminar a ${pacienteAEliminar?.nombre ?? 'este paciente'}?`}
+        cargando={eliminandoId !== null}
+        onConfirmar={eliminarPaciente}
+        onCancelar={() => setPacienteAEliminar(null)}
+      />
     </main>
   );
 }
