@@ -2,16 +2,22 @@ import { useState } from 'react';
 import { useNavigate } from 'react-router-dom';
 import { useForm } from 'react-hook-form';
 import { zodResolver } from '@hookform/resolvers/zod';
+import toast from 'react-hot-toast';
 import { citaSchema, type CitaFormData } from '../../schemas/citaSchema';
 import { useMedicos } from '../../hooks/useMedicos';
+import { create as crearCita } from '../../services/citas';
+import { extraerMensajeError } from '../../lib/errores';
 
 export default function FormularioCita() {
   const { medicos, cargando } = useMedicos();
+
+  //guardamos la cita agendada
   const [citaAgendada, setCitaAgendada] = useState<CitaFormData | null>(null);
 
   //navegamos a la página anterior
   const navegar = useNavigate();
 
+  //configuramos el formulario y sus validaciones
   const {
     register,
     handleSubmit,
@@ -29,10 +35,16 @@ export default function FormularioCita() {
     },
   });
 
-  //simulamos el envío de la cita
+  //registramos la cita en la API
   const agendarCita = async (datos: CitaFormData) => {
-    await new Promise((resolve) => setTimeout(resolve, 1500));
-    setCitaAgendada(datos);
+    try {
+      await crearCita(datos);
+
+      setCitaAgendada(datos);
+      toast.success('Cita agendada correctamente');
+    } catch (err: unknown) {
+      toast.error(extraerMensajeError(err));
+    }
   };
 
   //limpiamos el formulario para agendar otra cita
@@ -58,18 +70,23 @@ export default function FormularioCita() {
           <p>
             <strong>Paciente:</strong> {citaAgendada.pacienteNombre}
           </p>
+
           <p>
             <strong>Médico:</strong> {medicoSeleccionado?.nombre}
           </p>
+
           <p>
             <strong>Fecha:</strong> {citaAgendada.fecha}
           </p>
+
           <p>
             <strong>Hora:</strong> {citaAgendada.hora}
           </p>
+
           <p>
             <strong>Motivo:</strong> {citaAgendada.motivo}
           </p>
+
           <p>
             <strong>Urgencia:</strong> {citaAgendada.urgencia}
           </p>
@@ -87,21 +104,26 @@ export default function FormularioCita() {
       <h1>Nueva cita</h1>
 
       <form onSubmit={handleSubmit(agendarCita)} noValidate>
+        {/*nombre del paciente*/}
         <div>
           <label htmlFor="pacienteNombre">Nombre del paciente</label>
+
           <input
             id="pacienteNombre"
             {...register('pacienteNombre')}
             aria-invalid={!!errors.pacienteNombre}
             className={errors.pacienteNombre ? 'borde-error' : ''}
           />
+
           {errors.pacienteNombre && (
             <p className="error">{errors.pacienteNombre.message}</p>
           )}
         </div>
 
+        {/*seleccionamos el médico*/}
         <div>
           <label htmlFor="medicoId">Médico</label>
+
           <select
             id="medicoId"
             {...register('medicoId')}
@@ -119,13 +141,16 @@ export default function FormularioCita() {
               </option>
             ))}
           </select>
+
           {errors.medicoId && (
             <p className="error">{errors.medicoId.message}</p>
           )}
         </div>
 
+        {/*elegimos la fecha*/}
         <div>
           <label htmlFor="fecha">Fecha de la cita</label>
+
           <input
             id="fecha"
             type="date"
@@ -134,11 +159,16 @@ export default function FormularioCita() {
             aria-invalid={!!errors.fecha}
             className={errors.fecha ? 'borde-error' : ''}
           />
-          {errors.fecha && <p className="error">{errors.fecha.message}</p>}
+
+          {errors.fecha && (
+            <p className="error">{errors.fecha.message}</p>
+          )}
         </div>
 
+        {/*elegimos el horario*/}
         <div>
           <label htmlFor="hora">Hora de la cita</label>
+
           <input
             id="hora"
             type="time"
@@ -146,11 +176,16 @@ export default function FormularioCita() {
             aria-invalid={!!errors.hora}
             className={errors.hora ? 'borde-error' : ''}
           />
-          {errors.hora && <p className="error">{errors.hora.message}</p>}
+
+          {errors.hora && (
+            <p className="error">{errors.hora.message}</p>
+          )}
         </div>
 
+        {/*escribimos el motivo*/}
         <div>
           <label htmlFor="motivo">Motivo de la consulta</label>
+
           <textarea
             id="motivo"
             {...register('motivo')}
@@ -158,11 +193,16 @@ export default function FormularioCita() {
             aria-invalid={!!errors.motivo}
             className={errors.motivo ? 'borde-error' : ''}
           />
-          {errors.motivo && <p className="error">{errors.motivo.message}</p>}
+
+          {errors.motivo && (
+            <p className="error">{errors.motivo.message}</p>
+          )}
         </div>
 
+        {/*seleccionamos la urgencia*/}
         <div>
           <label htmlFor="urgencia">Nivel de urgencia</label>
+
           <select
             id="urgencia"
             {...register('urgencia')}
@@ -174,6 +214,7 @@ export default function FormularioCita() {
             <option value="alta">Alta</option>
             <option value="critica">Crítica</option>
           </select>
+
           {errors.urgencia && (
             <p className="error">{errors.urgencia.message}</p>
           )}
