@@ -5,11 +5,14 @@ import { zodResolver } from '@hookform/resolvers/zod';
 import toast from 'react-hot-toast';
 import { citaSchema, type CitaFormData } from '../../schemas/citaSchema';
 import { useMedicos } from '../../hooks/useMedicos';
-import { create as crearCita } from '../../services/citas';
+import { useCitasStore } from '../../stores/citasStore';
 import { extraerMensajeError } from '../../lib/errores';
 
 export default function FormularioCita() {
   const { medicos, cargando } = useMedicos();
+
+  //obtenemos la acción para crear citas
+  const agregarCita = useCitasStore((state) => state.agregarCita);
 
   //guardamos la cita agendada
   const [citaAgendada, setCitaAgendada] = useState<CitaFormData | null>(null);
@@ -35,10 +38,10 @@ export default function FormularioCita() {
     },
   });
 
-  //registramos la cita en la API
+  //registramos la cita usando Zustand
   const agendarCita = async (datos: CitaFormData) => {
     try {
-      await crearCita(datos);
+      await agregarCita(datos);
 
       setCitaAgendada(datos);
       toast.success('Cita agendada correctamente');

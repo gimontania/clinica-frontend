@@ -1,17 +1,39 @@
+import { useEffect } from 'react';
 import { useNavigate, useParams } from 'react-router-dom';
 import StatusBadge from './StatusBadge';
 import PaginaNotFound from './PaginaNotFound';
-import { pacientes } from '../data/pacientes';
+import { usePacientesStore } from '../stores/pacientesStore';
 
 export default function PaginaDetallePaciente() {
   //obtenemos el id de la URL
   const { id } = useParams();
 
-  //buscamos al paciente seleccionado
-  const paciente = pacientes.find((p) => p.id === id);
+  //obtenemos los pacientes desde Zustand
+  const pacientes = usePacientesStore((state) => state.pacientes);
+  const cargando = usePacientesStore((state) => state.cargando);
+  const cargar = usePacientesStore((state) => state.cargar);
 
   //volvemos a la página anterior
   const navegar = useNavigate();
+
+  //cargamos los pacientes si todavía no tenemos datos
+  useEffect(() => {
+    if (pacientes.length === 0) {
+      void cargar();
+    }
+  }, [pacientes.length, cargar]);
+
+  //buscamos al paciente seleccionado
+  const paciente = pacientes.find((p) => p.id === id);
+
+  //mostramos la carga mientras llegan los datos
+  if (cargando && pacientes.length === 0) {
+    return (
+      <main className="min-h-screen bg-slate-100 p-8">
+        <p className="text-slate-600">Cargando paciente...</p>
+      </main>
+    );
+  }
 
   //mostramos un error si no existe el paciente
   if (!paciente) {
@@ -27,18 +49,18 @@ export default function PaginaDetallePaciente() {
         ← Volver
       </button>
 
-      <section className="mx-auto max-w-2xl rounded-xl bg-white p-8 shadow-sm">
-        <h1 className="mb-6 text-3xl font-bold text-blue-600">
+      <section className="rounded-xl bg-white p-6 shadow-sm">
+        <h1 className="mb-6 text-2xl font-bold text-blue-600">
           Detalle del paciente
         </h1>
 
-        <div className="space-y-4 text-slate-700">
+        <div className="space-y-4 text-gray-700">
           <p>
-            <strong>Nombre:</strong> {paciente.nombre} {paciente.apellido}
+            <strong>ID:</strong> {paciente.id}
           </p>
 
           <p>
-            <strong>ID:</strong> {paciente.id}
+            <strong>Nombre:</strong> {paciente.nombre} {paciente.apellido}
           </p>
 
           <p>
