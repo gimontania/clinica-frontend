@@ -6,6 +6,7 @@ import toast from 'react-hot-toast';
 import type { Paciente } from '../../types/paciente';
 import { usePacientesStore } from '../../stores/pacientesStore';
 import { useFiltrosStore } from '../../stores/filtrosStore';
+import { useDebounce } from '../../hooks/useDebounce';
 import {
   pacienteSchema,
   type PacienteFormData,
@@ -29,12 +30,16 @@ function PaginaPacientes() {
   //obtenemos los filtros desde Zustand
   const busqueda = useFiltrosStore((state) => state.queryPacientes);
   const setBusqueda = useFiltrosStore((state) => state.setQueryPacientes);
+  const resetFiltros = useFiltrosStore((state) => state.resetFiltros);
   const estadoFiltro = useFiltrosStore(
     (state) => state.estadoPacienteFiltro,
   );
   const setEstadoFiltro = useFiltrosStore(
     (state) => state.setEstadoPaciente,
   );
+
+  //esperamos 350 ms antes de buscar
+  const busquedaDebounced = useDebounce(busqueda, 350);
 
   //guardamos el paciente que queremos eliminar
   const [pacienteAEliminar, setPacienteAEliminar] =
@@ -59,16 +64,15 @@ function PaginaPacientes() {
     },
   });
 
-  //consultamos los pacientes al abrir la página
+  //consultamos los pacientes al cambiar la búsqueda
   useEffect(() => {
-    void cargar();
-  }, [cargar]);
+    void cargar(busquedaDebounced.trim() || undefined);
+  }, [cargar, busquedaDebounced]);
 
-  //filtramos por nombre y estado
+  //filtramos los pacientes por estado
   const pacientesFiltrados = pacientes.filter(
     (paciente) =>
-      paciente.nombre.toLowerCase().includes(busqueda.toLowerCase()) &&
-      (estadoFiltro === 'Todos' || paciente.estado === estadoFiltro),
+      estadoFiltro === 'Todos' || paciente.estado === estadoFiltro,
   );
 
   //registramos un paciente
@@ -111,9 +115,7 @@ function PaginaPacientes() {
 
     try {
       setEliminandoId(id);
-
       await eliminar(id);
-
       setPacienteAEliminar(null);
       toast.success('Paciente eliminado');
     } catch (err: unknown) {
@@ -130,9 +132,7 @@ function PaginaPacientes() {
         <p className="mb-2 text-sm font-medium text-blue-600">
           Gestión de clínica
         </p>
-
         <h1 className="text-3xl font-bold text-gray-900">Pacientes</h1>
-
         <p className="mt-2 text-gray-500">
           Consulta la información de tus pacientes.
         </p>
@@ -151,10 +151,9 @@ function PaginaPacientes() {
           role="alert"
         >
           <p>{error}</p>
-
           <button
             type="button"
-            onClick={() => void cargar()}
+            onClick={() => void cargar(busquedaDebounced.trim() || undefined)}
             className="mt-2 rounded-lg bg-red-600 px-4 py-2 text-white"
           >
             Reintentar
@@ -165,7 +164,11 @@ function PaginaPacientes() {
       {/*buscador y filtros*/}
       <section className="mb-6 rounded-xl border border-gray-200 bg-white p-4 sm:p-6">
         <div className="mb-4">
-          <BuscadorPacientes value={busqueda} onChange={setBusqueda} />
+          <BuscadorPacientes
+            value={busqueda}
+            onChange={setBusqueda}
+            cargando={cargando || busqueda !== busquedaDebounced}
+          />
         </div>
 
         {/*filtramos por estado*/}
@@ -176,13 +179,11 @@ function PaginaPacientes() {
           >
             Filtrar por estado
           </label>
-
           <select
             id="filtroEstado"
             value={estadoFiltro}
             onChange={(e) => {
               const estado = e.target.value;
-
               if (
                 estado === 'Todos' ||
                 estado === 'activo' ||
@@ -201,13 +202,10 @@ function PaginaPacientes() {
           </select>
         </div>
 
-        {/*limpiamos los filtros*/}
+        {/*limpiamos los filtros guardados en Zustand*/}
         <button
           type="button"
-          onClick={() => {
-            setBusqueda('');
-            setEstadoFiltro('Todos');
-          }}
+          onClick={resetFiltros}
           className="rounded-lg bg-gray-200 px-4 py-2 text-sm font-medium text-gray-700 hover:bg-gray-300"
         >
           Limpiar filtros
@@ -223,7 +221,6 @@ function PaginaPacientes() {
         <h2 className="mb-4 text-xl font-semibold text-gray-900">
           Agregar paciente
         </h2>
-
         <form
           onSubmit={handleSubmit(agregarPaciente)}
           className="grid grid-cols-1 gap-4 sm:grid-cols-2"
@@ -234,7 +231,6 @@ function PaginaPacientes() {
             <label htmlFor="nombre" className="mb-1 block text-sm">
               Nombre *
             </label>
-
             <input
               id="nombre"
               type="text"
@@ -242,7 +238,6 @@ function PaginaPacientes() {
               aria-invalid={!!errors.nombre}
               className="w-full rounded-lg border border-gray-300 p-2"
             />
-
             {errors.nombre && (
               <p className="text-sm text-red-600">
                 {errors.nombre.message}
@@ -255,7 +250,6 @@ function PaginaPacientes() {
             <label htmlFor="apellido" className="mb-1 block text-sm">
               Apellido
             </label>
-
             <input
               id="apellido"
               type="text"
@@ -269,7 +263,6 @@ function PaginaPacientes() {
             <label htmlFor="email" className="mb-1 block text-sm">
               Email *
             </label>
-
             <input
               id="email"
               type="email"
@@ -277,7 +270,6 @@ function PaginaPacientes() {
               aria-invalid={!!errors.email}
               className="w-full rounded-lg border border-gray-300 p-2"
             />
-
             {errors.email && (
               <p className="text-sm text-red-600">
                 {errors.email.message}
@@ -290,7 +282,6 @@ function PaginaPacientes() {
             <label htmlFor="estado" className="mb-1 block text-sm">
               Estado
             </label>
-
             <select
               id="estado"
               {...register('estado')}
@@ -337,7 +328,6 @@ function PaginaPacientes() {
                 >
                   Cambiar estado:
                 </label>
-
                 <select
                   id={`estado-${paciente.id}`}
                   value={paciente.estado}
