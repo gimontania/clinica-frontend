@@ -4,12 +4,8 @@ import { useForm } from 'react-hook-form';
 import { zodResolver } from '@hookform/resolvers/zod';
 import toast from 'react-hot-toast';
 import type { Paciente } from '../../types/paciente';
-import { api } from '../../lib/axios';
-import {
-  create as crearPaciente,
-  update as actualizarPaciente,
-  remove as eliminarPacienteApi,
-} from '../../services/pacientes';
+import { usePacientesStore } from '../../stores/pacientesStore';
+import { useFiltrosStore } from '../../stores/filtrosStore';
 import {
   pacienteSchema,
   type PacienteFormData,
@@ -19,35 +15,32 @@ import BuscadorPacientes from './BuscadorPacientes';
 import PacienteRow from './PacienteRow';
 import ModalConfirmacion from '../ModalConfirmacion';
 
-//definimos la respuesta del backend
-interface RespuestaPacientes {
-  data: Paciente[];
-  total: number;
-}
-
 //página principal de pacientes
 function PaginaPacientes() {
-  //guardamos los pacientes
-  const [pacientesEstado, setPacientesEstado] = useState<Paciente[]>([]);
+  //obtenemos los datos de pacientes desde Zustand
+  const pacientes = usePacientesStore((state) => state.pacientes);
+  const cargando = usePacientesStore((state) => state.cargando);
+  const error = usePacientesStore((state) => state.error);
+  const cargar = usePacientesStore((state) => state.cargar);
+  const crear = usePacientesStore((state) => state.crear);
+  const actualizar = usePacientesStore((state) => state.actualizar);
+  const eliminar = usePacientesStore((state) => state.eliminar);
 
-  //guardamos la cantidad de pacientes
-  const [totalPacientes, setTotalPacientes] = useState(0);
+  //obtenemos los filtros desde Zustand
+  const busqueda = useFiltrosStore((state) => state.queryPacientes);
+  const setBusqueda = useFiltrosStore((state) => state.setQueryPacientes);
+  const estadoFiltro = useFiltrosStore(
+    (state) => state.estadoPacienteFiltro,
+  );
+  const setEstadoFiltro = useFiltrosStore(
+    (state) => state.setEstadoPaciente,
+  );
 
-  //controlamos la carga
-  const [cargando, setCargando] = useState(true);
-
-  //guardamos los filtros
-  const [busqueda, setBusqueda] = useState('');
-  const [estadoFiltro, setEstadoFiltro] = useState('Todos');
-
-  //guardamos los mensajes de error
-  const [error, setError] = useState('');
-
-  //controlamos el paciente que vamos a eliminar
+  //guardamos el paciente que queremos eliminar
   const [pacienteAEliminar, setPacienteAEliminar] =
     useState<Paciente | null>(null);
 
-  //guardamos el paciente que se está eliminando
+  //guardamos el id del paciente que se está eliminando
   const [eliminandoId, setEliminandoId] = useState<string | null>(null);
 
   //configuramos el formulario con sus validaciones
@@ -67,49 +60,26 @@ function PaginaPacientes() {
   });
 
   //consultamos los pacientes al abrir la página
-  async function cargarPacientes() {
-    try {
-      setCargando(true);
-      setError('');
-
-      const respuesta = await api.get<RespuestaPacientes>('/pacientes');
-
-      setPacientesEstado(respuesta.data.data);
-      setTotalPacientes(respuesta.data.total);
-    } catch (err: unknown) {
-      const mensaje = extraerMensajeError(err);
-      setError(mensaje);
-    } finally {
-      setCargando(false);
-    }
-  }
-
   useEffect(() => {
-    cargarPacientes();
-  }, []);
+    void cargar();
+  }, [cargar]);
 
   //filtramos por nombre y estado
-  const pacientesFiltrados = pacientesEstado.filter(
+  const pacientesFiltrados = pacientes.filter(
     (paciente) =>
       paciente.nombre.toLowerCase().includes(busqueda.toLowerCase()) &&
       (estadoFiltro === 'Todos' || paciente.estado === estadoFiltro),
   );
 
-  //registramos un paciente en la API
+  //registramos un paciente
   async function agregarPaciente(datos: PacienteFormData) {
     try {
-      setError('');
-
-      const respuesta = await crearPaciente({
+      await crear({
         ...datos,
         telefono: '',
         especialidadAsignada: '',
         ultimaCita: '',
       });
-
-      //agregamos el paciente devuelto por la API
-      setPacientesEstado((prev) => [...prev, respuesta.data]);
-      setTotalPacientes((prev) => prev + 1);
 
       //limpiamos el formulario
       reset();
@@ -120,27 +90,15 @@ function PaginaPacientes() {
     }
   }
 
-  //actualizamos el estado del paciente en la API
+  //actualizamos el estado del paciente
   async function cambiarEstado(
     id: Paciente['id'],
     nuevoEstado: Paciente['estado'],
   ) {
-    const pacientesAnteriores = pacientesEstado;
-
-    //actualizamos la pantalla inmediatamente
-    setPacientesEstado((prev) =>
-      prev.map((paciente) =>
-        paciente.id === id
-          ? { ...paciente, estado: nuevoEstado }
-          : paciente,
-      ),
-    );
-
     try {
-      await actualizarPaciente(id, { estado: nuevoEstado });
+      await actualizar(id, { estado: nuevoEstado });
+      toast.success('Estado actualizado');
     } catch (err: unknown) {
-      //recuperamos el estado anterior si falla
-      setPacientesEstado(pacientesAnteriores);
       toast.error(extraerMensajeError(err));
     }
   }
@@ -154,16 +112,9 @@ function PaginaPacientes() {
     try {
       setEliminandoId(id);
 
-      await eliminarPacienteApi(id);
+      await eliminar(id);
 
-      //quitamos el paciente de la lista
-      setPacientesEstado((prev) =>
-        prev.filter((paciente) => paciente.id !== id),
-      );
-
-      setTotalPacientes((prev) => Math.max(0, prev - 1));
       setPacienteAEliminar(null);
-
       toast.success('Paciente eliminado');
     } catch (err: unknown) {
       toast.error(extraerMensajeError(err));
@@ -203,7 +154,7 @@ function PaginaPacientes() {
 
           <button
             type="button"
-            onClick={cargarPacientes}
+            onClick={() => void cargar()}
             className="mt-2 rounded-lg bg-red-600 px-4 py-2 text-white"
           >
             Reintentar
@@ -229,7 +180,18 @@ function PaginaPacientes() {
           <select
             id="filtroEstado"
             value={estadoFiltro}
-            onChange={(e) => setEstadoFiltro(e.target.value)}
+            onChange={(e) => {
+              const estado = e.target.value;
+
+              if (
+                estado === 'Todos' ||
+                estado === 'activo' ||
+                estado === 'inactivo' ||
+                estado === 'en_espera'
+              ) {
+                setEstadoFiltro(estado);
+              }
+            }}
             className="w-full rounded-lg border border-gray-300 p-2"
           >
             <option value="Todos">Todos</option>
@@ -252,7 +214,7 @@ function PaginaPacientes() {
         </button>
 
         <p className="mt-4 text-sm text-gray-500">
-          {totalPacientes} paciente(s) registrado(s)
+          {pacientes.length} paciente(s) registrado(s)
         </p>
       </section>
 

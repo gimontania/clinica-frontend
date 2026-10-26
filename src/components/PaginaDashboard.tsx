@@ -5,127 +5,91 @@ import MetricCard from './MetricCard';
 import StatusBadge from './StatusBadge';
 import type { Metrica } from '../types';
 import { api } from '../lib/axios';
-import { updateEstado } from '../services/citas';
+import { useCitasStore } from '../stores/citasStore';
+import { usePacientesStore } from '../stores/pacientesStore';
+import type { EstadoCita } from '../services/citas';
 import { extraerMensajeError } from '../lib/errores';
 
 //definimos la respuesta de la API
 interface RespuestaApi {
-  data: unknown[] | number;
+  data: unknown[] | number | { total?: number };
   total?: number;
 }
 
-//definimos los datos de las citas
-interface CitaResumen {
-  id: string;
-  pacienteId: string;
-  medicoId: string;
-  estado: string;
-}
-
-//definimos la respuesta de las citas
-interface RespuestaCitas {
-  data: CitaResumen[];
-  total: number;
-}
-
 export default function PaginaDashboard() {
+  //guardamos el estado visual del sistema
   const [activo, setActivo] = useState(true);
 
-  //guardamos las cantidades de las métricas
-  const [pacientes, setPacientes] = useState(0);
+  //obtenemos los pacientes desde Zustand
+  const pacientes = usePacientesStore((state) => state.pacientes);
+  const cargarPacientes = usePacientesStore((state) => state.cargar);
+
+  //obtenemos las citas desde Zustand
+  const citas = useCitasStore((state) => state.citas);
+  const cargandoCitas = useCitasStore((state) => state.cargando);
+  const cargarTodas = useCitasStore((state) => state.cargarTodas);
+  const actualizarEstado = useCitasStore(
+    (state) => state.actualizarEstado,
+  );
+
+  //guardamos el total de médicos y los errores de carga
   const [medicos, setMedicos] = useState(0);
-  const [citasProgramadas, setCitasProgramadas] = useState(0);
-  const [completadas, setCompletadas] = useState(0);
-
-  //guardamos las citas
-  const [citas, setCitas] = useState<CitaResumen[]>([]);
-  const [cargandoCitas, setCargandoCitas] = useState(true);
-
-  //guardamos la carga y los errores
   const [cargando, setCargando] = useState(true);
   const [error, setError] = useState('');
 
   const navegar = useNavigate();
 
-  //consultamos las métricas y las citas
+  //consultamos los datos que faltan para las métricas
   useEffect(() => {
     async function cargarMetricas() {
       try {
         setCargando(true);
         setError('');
 
-        const [
-          respuestaPacientes,
-          respuestaMedicos,
-          respuestaProgramadas,
-          respuestaCompletadas,
-          respuestaCitas,
-        ] = await Promise.all([
-          api.get<RespuestaApi>('/pacientes'),
-          api.get<RespuestaApi>('/medicos'),
-          api.get<RespuestaApi>('/citas?estado=Programada'),
-          api.get<RespuestaApi>('/citas?estado=Completada'),
-          api.get<RespuestaCitas>('/citas'),
-        ]);
+        const respuestaMedicos = await api.get<RespuestaApi>('/medicos');
 
-        //guardamos las cantidades
-        setPacientes(
-          respuestaPacientes.data.total ??
-            (Array.isArray(respuestaPacientes.data.data)
-              ? respuestaPacientes.data.data.length
-              : 0),
-        );
+        //obtenemos el total de médicos
+        const datosMedicos = respuestaMedicos.data;
+        const totalMedicos =
+          typeof datosMedicos === 'object' &&
+          datosMedicos !== null &&
+          'total' in datosMedicos &&
+          typeof datosMedicos.total === 'number'
+            ? datosMedicos.total
+            : Array.isArray(datosMedicos)
+              ? datosMedicos.length
+              : 0;
 
-        setMedicos(
-          respuestaMedicos.data.total ??
-            (Array.isArray(respuestaMedicos.data.data)
-              ? respuestaMedicos.data.data.length
-              : 0),
-        );
+        setMedicos(totalMedicos);
 
-        setCitasProgramadas(
-          respuestaProgramadas.data.total ??
-            (Array.isArray(respuestaProgramadas.data.data)
-              ? respuestaProgramadas.data.data.length
-              : 0),
-        );
-
-        setCompletadas(
-          respuestaCompletadas.data.total ??
-            (Array.isArray(respuestaCompletadas.data.data)
-              ? respuestaCompletadas.data.data.length
-              : 0),
-        );
-
-        setCitas(respuestaCitas.data.data);
+        //cargamos los datos compartidos desde Zustand
+        await Promise.all([cargarPacientes(), cargarTodas()]);
       } catch (err: unknown) {
         setError(extraerMensajeError(err));
       } finally {
         setCargando(false);
-        setCargandoCitas(false);
       }
     }
 
-    cargarMetricas();
-  }, []);
+    void cargarMetricas();
+  }, [cargarPacientes, cargarTodas]);
 
-  //actualizamos el estado de la cita inmediatamente
-  async function cambiarEstadoCita(id: string, nuevoEstado: string) {
-    const citasAnteriores = citas;
+  //calculamos las citas según su estado
+  const citasProgramadas = citas.filter(
+    (cita) => cita.estado === 'Programada',
+  ).length;
 
-    setCitas((prev) =>
-      prev.map((cita) =>
-        cita.id === id ? { ...cita, estado: nuevoEstado } : cita,
-      ),
-    );
+  const completadas = citas.filter(
+    (cita) => cita.estado === 'Completada',
+  ).length;
 
+  //actualizamos el estado de una cita
+  async function cambiarEstadoCita(id: string, nuevoEstado: EstadoCita) {
     try {
-      await updateEstado(id, nuevoEstado);
+      await actualizarEstado(id, nuevoEstado);
       toast.success('Estado de la cita actualizado');
     } catch (err: unknown) {
-      //restauramos las citas si falla la API
-      setCitas(citasAnteriores);
-      toast.error('Cambio revertido');
+      toast.error('No se pudo actualizar el estado');
       console.error(extraerMensajeError(err));
     }
   }
@@ -135,7 +99,7 @@ export default function PaginaDashboard() {
     {
       id: 'pacientes',
       titulo: 'Pacientes',
-      valor: pacientes,
+      valor: pacientes.length,
       descripcion: 'Pacientes registrados',
       tendencia: 'positiva',
       icono: '👤',
@@ -215,7 +179,10 @@ export default function PaginaDashboard() {
       )}
 
       {error && (
-        <div className="mt-6 rounded-lg bg-rose-100 p-4 text-rose-700" role="alert">
+        <div
+          className="mt-6 rounded-lg bg-rose-100 p-4 text-rose-700"
+          role="alert"
+        >
           <p>{error}</p>
           <button
             onClick={() => window.location.reload()}
@@ -256,7 +223,7 @@ export default function PaginaDashboard() {
               <div>
                 <p className="font-medium">Cita #{cita.id}</p>
                 <p className="text-sm text-gray-500">
-                  Paciente: {cita.pacienteId}
+                  Paciente: {cita.pacienteId || 'Sin paciente asignado'}
                 </p>
                 <p className="text-sm text-gray-500">
                   Médico: {cita.medicoId}
@@ -269,7 +236,10 @@ export default function PaginaDashboard() {
                 <select
                   value={cita.estado}
                   onChange={(e) =>
-                    cambiarEstadoCita(cita.id, e.target.value)
+                    cambiarEstadoCita(
+                      cita.id,
+                      e.target.value as EstadoCita,
+                    )
                   }
                   className="rounded-lg border border-gray-300 p-2"
                 >
