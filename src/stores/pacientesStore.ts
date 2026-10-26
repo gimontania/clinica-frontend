@@ -8,12 +8,7 @@ import {
   remove as eliminarPacienteApi,
 } from '../services/pacientes';
 import type { Paciente } from '../types/paciente';
-
-//definimos la respuesta de la API
-interface RespuestaPacientes {
-  data: Paciente[];
-  total: number;
-}
+import type { RespuestaPaginada } from '../types/api';
 
 //definimos el estado y las acciones de pacientes
 interface PacientesState {
@@ -41,7 +36,7 @@ export const usePacientesStore = create<PacientesState>()(
         set({ cargando: true, error: null });
 
         try {
-          const respuesta = await api.get<RespuestaPacientes>(
+          const respuesta = await api.get<RespuestaPaginada<Paciente>>(
             '/pacientes',
             { params: { query } },
           );
