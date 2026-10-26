@@ -19,7 +19,7 @@ export default function Layout() {
               }`
             }
           >
-            🏠 Dashboard
+            📊 Dashboard
           </NavLink>
 
           <NavLink
@@ -43,6 +43,17 @@ export default function Layout() {
             }
           >
             📅 Nueva cita
+          </NavLink>
+
+          <NavLink
+            to="/reportes"
+            className={({ isActive }) =>
+              `rounded-lg px-4 py-3 ${
+                isActive ? 'bg-blue-600' : 'hover:bg-slate-700'
+              }`
+            }
+          >
+            📈 Reportes
           </NavLink>
         </nav>
       </aside>
