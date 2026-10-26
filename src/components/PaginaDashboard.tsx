@@ -152,6 +152,14 @@ export default function PaginaDashboard() {
         Agendar cita
       </button>
 
+      {/*botón para abrir reportes*/}
+      <button
+        onClick={() => navegar('/reportes')}
+        className="ml-3 rounded-lg bg-blue-600 px-4 py-2 text-white"
+      >
+        Ver reportes completos →
+      </button>
+
       {/*mostramos el estado del sistema*/}
       <div className="mt-4">
         <StatusBadge activo={activo} />

@@ -5,6 +5,7 @@ import PaginaPacientes from './components/pacientes/PaginaPacientes';
 import PaginaDetallePaciente from './components/PaginaDetallePaciente';
 import FormularioCita from './components/citas/FormularioCita';
 import PaginaNotFound from './components/PaginaNotFound';
+import PaginaReportes from './components/PaginaReportes';
 
 function App() {
   return (
@@ -18,6 +19,7 @@ function App() {
           element={<PaginaDetallePaciente />}
         />
         <Route path="/citas/nueva" element={<FormularioCita />} />
+        <Route path="/reportes" element={<PaginaReportes />} />
       </Route>
 
       {/*mostramos un error si la ruta no existe*/}

@@ -8,6 +8,10 @@ import {
   remove as eliminarPacienteApi,
 } from '../services/pacientes';
 import type { Paciente } from '../types/paciente';
+import type {
+  CrearPacienteDTO,
+  ActualizarPacienteDTO,
+} from '../types/dtos';
 import type { RespuestaPaginada } from '../types/api';
 
 //definimos el estado y las acciones de pacientes
@@ -16,11 +20,8 @@ interface PacientesState {
   cargando: boolean;
   error: string | null;
   cargar: (query?: string) => Promise<void>;
-  crear: (datos: Omit<Paciente, 'id'>) => Promise<void>;
-  actualizar: (
-    id: string,
-    datos: Partial<Omit<Paciente, 'id'>>
-  ) => Promise<void>;
+  crear: (datos: CrearPacienteDTO) => Promise<void>;
+  actualizar: (id: string, datos: ActualizarPacienteDTO) => Promise<void>;
   eliminar: (id: string) => Promise<void>;
 }
 
