@@ -6,10 +6,14 @@ import PaginaDetallePaciente from './components/PaginaDetallePaciente';
 import FormularioCita from './components/citas/FormularioCita';
 import PaginaNotFound from './components/PaginaNotFound';
 import PaginaReportes from './components/PaginaReportes';
+import PaginaLogin from './components/PaginaLogin';
 
 function App() {
   return (
     <Routes>
+      {/*mostramos la pantalla de inicio de sesión*/}
+      <Route path="/login" element={<PaginaLogin />} />
+
       {/*mostramos las páginas con el menú lateral*/}
       <Route element={<Layout />}>
         <Route path="/" element={<PaginaDashboard />} />
