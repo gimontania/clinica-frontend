@@ -7,27 +7,37 @@ import FormularioCita from './components/citas/FormularioCita';
 import PaginaNotFound from './components/PaginaNotFound';
 import PaginaReportes from './components/PaginaReportes';
 import PaginaLogin from './components/PaginaLogin';
+import RutaProtegida from './components/RutaProtegida';
+import PaginaSinAcceso from './components/PaginaSinAcceso';
 
 function App() {
   return (
     <Routes>
-      {/*mostramos la pantalla de inicio de sesión*/}
       <Route path="/login" element={<PaginaLogin />} />
 
-      {/*mostramos las páginas con el menú lateral*/}
-      <Route element={<Layout />}>
-        <Route path="/" element={<PaginaDashboard />} />
-        <Route path="/pacientes" element={<PaginaPacientes />} />
-        <Route
-          path="/pacientes/:id"
-          element={<PaginaDetallePaciente />}
-        />
-        <Route path="/citas/nueva" element={<FormularioCita />} />
-        <Route path="/reportes" element={<PaginaReportes />} />
-      </Route>
+      <Route element={<RutaProtegida />}>
+        <Route path="/sin-acceso" element={<PaginaSinAcceso />} />
 
-      {/*mostramos un error si la ruta no existe*/}
-      <Route path="*" element={<PaginaNotFound />} />
+        <Route element={<Layout />}>
+          <Route path="/" element={<PaginaDashboard />} />
+          <Route path="/pacientes" element={<PaginaPacientes />} />
+          <Route
+            path="/pacientes/:id"
+            element={<PaginaDetallePaciente />}
+          />
+          <Route path="/citas/nueva" element={<FormularioCita />} />
+
+          <Route
+            element={
+              <RutaProtegida rolesPermitidos={['GERENCIA', 'ADMIN']} />
+            }
+          >
+            <Route path="/reportes" element={<PaginaReportes />} />
+          </Route>
+        </Route>
+
+        <Route path="*" element={<PaginaNotFound />} />
+      </Route>
     </Routes>
   );
 }
