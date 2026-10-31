@@ -9,6 +9,7 @@ import PaginaReportes from './components/PaginaReportes';
 import PaginaLogin from './components/PaginaLogin';
 import RutaProtegida from './components/RutaProtegida';
 import PaginaSinAcceso from './components/PaginaSinAcceso';
+import PaginaPerfil from './components/PaginaPerfil';
 
 function App() {
   return (
@@ -20,6 +21,7 @@ function App() {
 
         <Route element={<Layout />}>
           <Route path="/" element={<PaginaDashboard />} />
+          <Route path="/perfil" element={<PaginaPerfil />} />
           <Route path="/pacientes" element={<PaginaPacientes />} />
           <Route
             path="/pacientes/:id"
