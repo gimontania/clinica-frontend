@@ -4,6 +4,9 @@ import { api } from '../lib/axios';
 import { extraerMensajeError } from '../lib/errores';
 import type { Cita, EstadoCita } from '../services/citas';
 import type { RespuestaPaginada } from '../types/api';
+import AlertaBanner from '../shared/components/ui/AlertaBanner';
+import EstadoVacio from '../shared/components/ui/EstadoVacio';
+import SkeletonCitaRow from '../shared/components/ui/SkeletonCitaRow';
 
 type FiltroEstado = 'Todos' | EstadoCita;
 
@@ -25,9 +28,11 @@ export default function PaginaHistorialCitas() {
   const [searchParams, setSearchParams] = useSearchParams();
 
   const pagina = Math.max(1, Number(searchParams.get('pagina')) || 1);
-  const estado = (estados.includes(searchParams.get('estado') as FiltroEstado)
-    ? searchParams.get('estado')
-    : 'Todos') as FiltroEstado;
+  const estado = (
+    estados.includes(searchParams.get('estado') as FiltroEstado)
+      ? searchParams.get('estado')
+      : 'Todos'
+  ) as FiltroEstado;
 
   const [citas, setCitas] = useState<Cita[]>([]);
   const [total, setTotal] = useState(0);
@@ -125,104 +130,98 @@ export default function PaginaHistorialCitas() {
       </section>
 
       {cargando && (
-        <section role="status" aria-label="Cargando citas">
+        <section
+          className="flex flex-col gap-3"
+          role="status"
+          aria-label="Cargando citas"
+        >
           {Array.from({ length: POR_PAGINA }, (_, indice) => (
-            <div
-              key={indice}
-              className="mb-3 h-16 animate-pulse rounded-lg bg-white shadow-sm"
-            />
+            <SkeletonCitaRow key={indice} />
           ))}
         </section>
       )}
 
       {!cargando && error && (
-        <div
-          role="alert"
-          className="rounded-xl bg-rose-100 p-4 text-rose-700"
-        >
-          No pudimos cargar el historial: {error}
-          <button
-            type="button"
-            onClick={() => window.location.reload()}
-            className="ml-3 font-semibold underline"
-          >
-            Reintentar
-          </button>
-        </div>
+        <AlertaBanner
+          tipo="error"
+          mensaje={`No pudimos cargar el historial: ${error}`}
+          onCerrar={() => setError('')}
+        />
       )}
 
       {!cargando && !error && (
         <>
-          <section className="overflow-x-auto rounded-xl bg-white shadow-sm">
-            <table className="w-full min-w-[800px] text-left">
-              <thead className="bg-slate-200 text-slate-700">
-                <tr>
-                  <th className="p-4">Paciente</th>
-                  <th className="p-4">Fecha</th>
-                  <th className="p-4">Hora</th>
-                  <th className="p-4">Médico</th>
-                  <th className="p-4">Motivo</th>
-                  <th className="p-4">Estado</th>
-                </tr>
-              </thead>
-
-              <tbody>
-                {respuestaPaginada.data.map((cita) => (
-                  <tr key={cita.id} className="border-t border-slate-200">
-                    <td className="p-4">{cita.pacienteNombre || 'Sin nombre'}</td>
-                    <td className="p-4">{cita.fecha}</td>
-                    <td className="p-4">{cita.hora}</td>
-                    <td className="p-4">{cita.medicoId}</td>
-                    <td className="p-4">{cita.motivo}</td>
-                    <td className="p-4">
-                      <span className="rounded-full bg-blue-100 px-3 py-1 text-sm text-blue-700">
-                        {cita.estado}
-                      </span>
-                    </td>
-                  </tr>
-                ))}
-
-                {respuestaPaginada.data.length === 0 && (
+          {respuestaPaginada.data.length === 0 ? (
+            <EstadoVacio
+              titulo="No hay citas para mostrar"
+              mensaje="Probá cambiar el filtro de estado para encontrar citas."
+            />
+          ) : (
+            <section className="overflow-x-auto rounded-xl bg-white shadow-sm">
+              <table className="w-full min-w-[800px] text-left">
+                <thead className="bg-slate-200 text-slate-700">
                   <tr>
-                    <td
-                      colSpan={6}
-                      className="p-8 text-center text-slate-500"
-                    >
-                      No hay citas para mostrar.
-                    </td>
+                    <th className="p-4">Paciente</th>
+                    <th className="p-4">Fecha</th>
+                    <th className="p-4">Hora</th>
+                    <th className="p-4">Médico</th>
+                    <th className="p-4">Motivo</th>
+                    <th className="p-4">Estado</th>
                   </tr>
-                )}
-              </tbody>
-            </table>
-          </section>
+                </thead>
 
-          <div className="mt-6 flex flex-col items-center justify-between gap-4 sm:flex-row">
-            <p className="text-sm text-slate-600">
-              Página {respuestaPaginada.pagina} de {respuestaPaginada.totalPaginas}
-              {' — '}
-              {respuestaPaginada.total} registros
-            </p>
+                <tbody>
+                  {respuestaPaginada.data.map((cita) => (
+                    <tr key={cita.id} className="border-t border-slate-200">
+                      <td className="p-4">
+                        {cita.pacienteNombre || 'Sin nombre'}
+                      </td>
+                      <td className="p-4">{cita.fecha}</td>
+                      <td className="p-4">{cita.hora}</td>
+                      <td className="p-4">{cita.medicoId}</td>
+                      <td className="p-4">{cita.motivo}</td>
+                      <td className="p-4">
+                        <span className="rounded-full bg-blue-100 px-3 py-1 text-sm text-blue-700">
+                          {cita.estado}
+                        </span>
+                      </td>
+                    </tr>
+                  ))}
+                </tbody>
+              </table>
+            </section>
+          )}
 
-            <div className="flex gap-3">
-              <button
-                type="button"
-                disabled={pagina <= 1}
-                onClick={() => cambiarPagina(pagina - 1)}
-                className="rounded-lg bg-blue-600 px-4 py-2 text-white transition hover:bg-blue-700 disabled:cursor-not-allowed disabled:bg-slate-300"
-              >
-                ← Anterior
-              </button>
+          {total > 0 && (
+            <div className="mt-6 flex flex-col items-center justify-between gap-4 sm:flex-row">
+              <p className="text-sm text-slate-600">
+                Página {respuestaPaginada.pagina} de{' '}
+                {respuestaPaginada.totalPaginas}
+                {' — '}
+                {respuestaPaginada.total} registros
+              </p>
 
-              <button
-                type="button"
-                disabled={pagina >= totalPaginas}
-                onClick={() => cambiarPagina(pagina + 1)}
-                className="rounded-lg bg-blue-600 px-4 py-2 text-white transition hover:bg-blue-700 disabled:cursor-not-allowed disabled:bg-slate-300"
-              >
-                Siguiente →
-              </button>
+              <div className="flex gap-3">
+                <button
+                  type="button"
+                  disabled={pagina <= 1}
+                  onClick={() => cambiarPagina(pagina - 1)}
+                  className="rounded-lg bg-blue-600 px-4 py-2 text-white transition hover:bg-blue-700 disabled:cursor-not-allowed disabled:bg-slate-300"
+                >
+                  ← Anterior
+                </button>
+
+                <button
+                  type="button"
+                  disabled={pagina >= totalPaginas}
+                  onClick={() => cambiarPagina(pagina + 1)}
+                  className="rounded-lg bg-blue-600 px-4 py-2 text-white transition hover:bg-blue-700 disabled:cursor-not-allowed disabled:bg-slate-300"
+                >
+                  Siguiente →
+                </button>
+              </div>
             </div>
-          </div>
+          )}
         </>
       )}
     </main>

@@ -11,6 +11,7 @@ import RutaProtegida from './components/RutaProtegida';
 import PaginaSinAcceso from './components/PaginaSinAcceso';
 import PaginaPerfil from './components/PaginaPerfil';
 import PaginaHistorialCitas from './components/PaginaHistorialCitas';
+import ErrorBoundary from './shared/components/ui/ErrorBoundary';
 
 function App() {
   return (
@@ -21,17 +22,53 @@ function App() {
         <Route path="/sin-acceso" element={<PaginaSinAcceso />} />
 
         <Route element={<Layout />}>
-          <Route path="/" element={<PaginaDashboard />} />
-          <Route path="/perfil" element={<PaginaPerfil />} />
-          <Route path="/pacientes" element={<PaginaPacientes />} />
+          <Route
+            path="/"
+            element={
+              <ErrorBoundary>
+                <PaginaDashboard />
+              </ErrorBoundary>
+            }
+          />
+          <Route
+            path="/perfil"
+            element={
+              <ErrorBoundary>
+                <PaginaPerfil />
+              </ErrorBoundary>
+            }
+          />
+          <Route
+            path="/pacientes"
+            element={
+              <ErrorBoundary>
+                <PaginaPacientes />
+              </ErrorBoundary>
+            }
+          />
           <Route
             path="/pacientes/:id"
-            element={<PaginaDetallePaciente />}
+            element={
+              <ErrorBoundary>
+                <PaginaDetallePaciente />
+              </ErrorBoundary>
+            }
           />
-          <Route path="/citas/nueva" element={<FormularioCita />} />
+          <Route
+            path="/citas/nueva"
+            element={
+              <ErrorBoundary>
+                <FormularioCita />
+              </ErrorBoundary>
+            }
+          />
           <Route
             path="/historial"
-            element={<PaginaHistorialCitas />}
+            element={
+              <ErrorBoundary>
+                <PaginaHistorialCitas />
+              </ErrorBoundary>
+            }
           />
 
           <Route
@@ -39,7 +76,14 @@ function App() {
               <RutaProtegida rolesPermitidos={['GERENCIA', 'ADMIN']} />
             }
           >
-            <Route path="/reportes" element={<PaginaReportes />} />
+            <Route
+              path="/reportes"
+              element={
+                <ErrorBoundary>
+                  <PaginaReportes />
+                </ErrorBoundary>
+              }
+            />
           </Route>
         </Route>
 
