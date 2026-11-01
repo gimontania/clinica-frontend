@@ -14,11 +14,12 @@ import {
 import { extraerMensajeError } from '../../lib/errores';
 import BuscadorPacientes from './BuscadorPacientes';
 import PacienteRow from './PacienteRow';
-import ModalConfirmacion from '../ModalConfirmacion';
+import ModalConfirmacion from '../../shared/components/ui/ModalConfirmacion';
+import SkeletonPacienteRow from '../../shared/components/ui/SkeletonPacienteRow';
+import AlertaBanner from '../../shared/components/ui/AlertaBanner';
+import EstadoVacio from '../../shared/components/ui/EstadoVacio';
 
-//página principal de pacientes
 function PaginaPacientes() {
-  //obtenemos los datos de pacientes desde Zustand
   const pacientes = usePacientesStore((state) => state.pacientes);
   const cargando = usePacientesStore((state) => state.cargando);
   const error = usePacientesStore((state) => state.error);
@@ -27,7 +28,6 @@ function PaginaPacientes() {
   const actualizar = usePacientesStore((state) => state.actualizar);
   const eliminar = usePacientesStore((state) => state.eliminar);
 
-  //obtenemos los filtros desde Zustand
   const busqueda = useFiltrosStore((state) => state.queryPacientes);
   const setBusqueda = useFiltrosStore((state) => state.setQueryPacientes);
   const resetFiltros = useFiltrosStore((state) => state.resetFiltros);
@@ -38,17 +38,12 @@ function PaginaPacientes() {
     (state) => state.setEstadoPaciente,
   );
 
-  //esperamos 350 ms antes de buscar
   const busquedaDebounced = useDebounce(busqueda, 350);
 
-  //guardamos el paciente que queremos eliminar
   const [pacienteAEliminar, setPacienteAEliminar] =
     useState<Paciente | null>(null);
-
-  //guardamos el id del paciente que se está eliminando
   const [eliminandoId, setEliminandoId] = useState<string | null>(null);
 
-  //configuramos el formulario con sus validaciones
   const {
     register,
     handleSubmit,
@@ -64,18 +59,15 @@ function PaginaPacientes() {
     },
   });
 
-  //consultamos los pacientes al cambiar la búsqueda
   useEffect(() => {
     void cargar(busquedaDebounced.trim() || undefined);
   }, [cargar, busquedaDebounced]);
 
-  //filtramos los pacientes por estado
   const pacientesFiltrados = pacientes.filter(
     (paciente) =>
       estadoFiltro === 'Todos' || paciente.estado === estadoFiltro,
   );
 
-  //registramos un paciente
   async function agregarPaciente(datos: PacienteFormData) {
     try {
       await crear({
@@ -85,16 +77,13 @@ function PaginaPacientes() {
         ultimaCita: '',
       });
 
-      //limpiamos el formulario
       reset();
-
       toast.success('Paciente registrado');
     } catch (err: unknown) {
       toast.error(extraerMensajeError(err));
     }
   }
 
-  //actualizamos el estado del paciente
   async function cambiarEstado(
     id: Paciente['id'],
     nuevoEstado: Paciente['estado'],
@@ -107,7 +96,6 @@ function PaginaPacientes() {
     }
   }
 
-  //eliminamos el paciente confirmado
   async function eliminarPaciente() {
     if (!pacienteAEliminar) return;
 
@@ -127,7 +115,6 @@ function PaginaPacientes() {
 
   return (
     <main className="min-h-screen bg-gray-50 p-4 sm:p-6 lg:p-8">
-      {/*encabezado de la página*/}
       <header className="mb-8">
         <p className="mb-2 text-sm font-medium text-blue-600">
           Gestión de clínica
@@ -138,19 +125,12 @@ function PaginaPacientes() {
         </p>
       </header>
 
-      {/*mostramos la carga y los errores*/}
-      {cargando && (
-        <p className="mb-4 text-gray-600" role="status">
-          Cargando pacientes...
-        </p>
-      )}
-
       {error && (
-        <div
-          className="mb-4 rounded-lg bg-red-100 p-4 text-red-700"
-          role="alert"
-        >
-          <p>{error}</p>
+        <div className="mb-4">
+          <AlertaBanner
+            tipo="error"
+            mensaje={error}
+          />
           <button
             type="button"
             onClick={() => void cargar(busquedaDebounced.trim() || undefined)}
@@ -161,7 +141,6 @@ function PaginaPacientes() {
         </div>
       )}
 
-      {/*buscador y filtros*/}
       <section className="mb-6 rounded-xl border border-gray-200 bg-white p-4 sm:p-6">
         <div className="mb-4">
           <BuscadorPacientes
@@ -171,7 +150,6 @@ function PaginaPacientes() {
           />
         </div>
 
-        {/*filtramos por estado*/}
         <div className="mb-4">
           <label
             htmlFor="filtroEstado"
@@ -202,7 +180,6 @@ function PaginaPacientes() {
           </select>
         </div>
 
-        {/*limpiamos los filtros guardados en Zustand*/}
         <button
           type="button"
           onClick={resetFiltros}
@@ -216,7 +193,6 @@ function PaginaPacientes() {
         </p>
       </section>
 
-      {/*formulario para agregar pacientes*/}
       <section className="mb-6 rounded-xl border border-gray-200 bg-white p-4 sm:p-6">
         <h2 className="mb-4 text-xl font-semibold text-gray-900">
           Agregar paciente
@@ -226,7 +202,6 @@ function PaginaPacientes() {
           className="grid grid-cols-1 gap-4 sm:grid-cols-2"
           noValidate
         >
-          {/*nombre*/}
           <div>
             <label htmlFor="nombre" className="mb-1 block text-sm">
               Nombre *
@@ -245,7 +220,6 @@ function PaginaPacientes() {
             )}
           </div>
 
-          {/*apellido*/}
           <div>
             <label htmlFor="apellido" className="mb-1 block text-sm">
               Apellido
@@ -258,7 +232,6 @@ function PaginaPacientes() {
             />
           </div>
 
-          {/*email*/}
           <div>
             <label htmlFor="email" className="mb-1 block text-sm">
               Email *
@@ -277,7 +250,6 @@ function PaginaPacientes() {
             )}
           </div>
 
-          {/*estado inicial*/}
           <div>
             <label htmlFor="estado" className="mb-1 block text-sm">
               Estado
@@ -303,14 +275,33 @@ function PaginaPacientes() {
         </form>
       </section>
 
-      {/*lista de pacientes*/}
-      {!cargando && !error && (
+      {cargando && !error && (
+        <section
+          className="flex flex-col gap-4"
+          role="status"
+          aria-label="Cargando pacientes"
+        >
+          {Array.from({ length: 4 }, (_, indice) => (
+            <SkeletonPacienteRow key={indice} />
+          ))}
+        </section>
+      )}
+
+      {!cargando && !error && pacientesFiltrados.length === 0 && (
+        <EstadoVacio
+          titulo="No hay pacientes para mostrar"
+          mensaje="Probá cambiar la búsqueda o los filtros, o registrá un paciente nuevo."
+          textoAccion="Limpiar filtros"
+          onAccion={resetFiltros}
+        />
+      )}
+
+      {!cargando && !error && pacientesFiltrados.length > 0 && (
         <section className="flex flex-col gap-4">
           {pacientesFiltrados.map((paciente) => (
             <div key={paciente.id}>
               <PacienteRow paciente={paciente} />
 
-              {/*enlace al detalle del paciente*/}
               <div className="mt-2 rounded-lg bg-white p-3">
                 <Link
                   to={`/pacientes/${paciente.id}`}
@@ -320,7 +311,6 @@ function PaginaPacientes() {
                 </Link>
               </div>
 
-              {/*controles del paciente*/}
               <div className="mt-2 flex flex-wrap items-center gap-3 rounded-lg bg-white p-3">
                 <label
                   htmlFor={`estado-${paciente.id}`}
@@ -360,7 +350,6 @@ function PaginaPacientes() {
         </section>
       )}
 
-      {/*confirmamos antes de eliminar*/}
       <ModalConfirmacion
         abierto={pacienteAEliminar !== null}
         titulo="Eliminar paciente"

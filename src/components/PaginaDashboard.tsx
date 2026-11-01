@@ -9,22 +9,21 @@ import { useCitasStore } from '../stores/citasStore';
 import { usePacientesStore } from '../stores/pacientesStore';
 import type { EstadoCita } from '../services/citas';
 import { extraerMensajeError } from '../lib/errores';
+import Spinner from '../shared/components/ui/Spinner';
+import AlertaBanner from '../shared/components/ui/AlertaBanner';
+import SkeletonMetricCard from '../shared/components/ui/SkeletonMetricCard';
 
-//definimos la respuesta de la API
 interface RespuestaApi {
   data: unknown[] | number | { total?: number };
   total?: number;
 }
 
 export default function PaginaDashboard() {
-  //guardamos el estado visual del sistema
   const [activo, setActivo] = useState(true);
 
-  //obtenemos los pacientes desde Zustand
   const pacientes = usePacientesStore((state) => state.pacientes);
   const cargarPacientes = usePacientesStore((state) => state.cargar);
 
-  //obtenemos las citas desde Zustand
   const citas = useCitasStore((state) => state.citas);
   const cargandoCitas = useCitasStore((state) => state.cargando);
   const cargarTodas = useCitasStore((state) => state.cargarTodas);
@@ -32,14 +31,12 @@ export default function PaginaDashboard() {
     (state) => state.actualizarEstado,
   );
 
-  //guardamos el total de médicos y los errores de carga
   const [medicos, setMedicos] = useState(0);
   const [cargando, setCargando] = useState(true);
   const [error, setError] = useState('');
 
   const navegar = useNavigate();
 
-  //consultamos los datos que faltan para las métricas
   useEffect(() => {
     async function cargarMetricas() {
       try {
@@ -48,7 +45,6 @@ export default function PaginaDashboard() {
 
         const respuestaMedicos = await api.get<RespuestaApi>('/medicos');
 
-        //obtenemos el total de médicos
         const datosMedicos = respuestaMedicos.data;
         const totalMedicos =
           typeof datosMedicos === 'object' &&
@@ -62,7 +58,6 @@ export default function PaginaDashboard() {
 
         setMedicos(totalMedicos);
 
-        //cargamos los datos compartidos desde Zustand
         await Promise.all([cargarPacientes(), cargarTodas()]);
       } catch (err: unknown) {
         setError(extraerMensajeError(err));
@@ -74,7 +69,6 @@ export default function PaginaDashboard() {
     void cargarMetricas();
   }, [cargarPacientes, cargarTodas]);
 
-  //calculamos las citas según su estado
   const citasProgramadas = citas.filter(
     (cita) => cita.estado === 'Programada',
   ).length;
@@ -83,7 +77,6 @@ export default function PaginaDashboard() {
     (cita) => cita.estado === 'Completada',
   ).length;
 
-  //actualizamos el estado de una cita
   async function cambiarEstadoCita(id: string, nuevoEstado: EstadoCita) {
     try {
       await actualizarEstado(id, nuevoEstado);
@@ -94,7 +87,6 @@ export default function PaginaDashboard() {
     }
   }
 
-  //definimos las métricas del dashboard
   const metricas: Metrica[] = [
     {
       id: 'pacientes',
@@ -136,7 +128,6 @@ export default function PaginaDashboard() {
         Clínica Salud Integral
       </h1>
 
-      {/*botón para abrir pacientes*/}
       <button
         onClick={() => navegar('/pacientes')}
         className="rounded-lg bg-indigo-600 px-4 py-2 text-white"
@@ -144,7 +135,6 @@ export default function PaginaDashboard() {
         Ver pacientes
       </button>
 
-      {/*botón para agendar citas*/}
       <button
         onClick={() => navegar('/citas/nueva')}
         className="ml-3 rounded-lg bg-emerald-600 px-4 py-2 text-white"
@@ -152,7 +142,6 @@ export default function PaginaDashboard() {
         Agendar cita
       </button>
 
-      {/*botón para abrir reportes*/}
       <button
         onClick={() => navegar('/reportes')}
         className="ml-3 rounded-lg bg-blue-600 px-4 py-2 text-white"
@@ -160,18 +149,17 @@ export default function PaginaDashboard() {
         Ver reportes completos →
       </button>
 
-      {/*mostramos el estado del sistema*/}
       <div className="mt-4">
         <StatusBadge activo={activo} />
       </div>
 
       {!activo && (
-        <p className="mt-4 rounded-lg bg-rose-100 p-3 text-rose-700">
-          El sistema está en mantenimiento.
-        </p>
+        <AlertaBanner
+          tipo="warning"
+          mensaje="El sistema está en mantenimiento."
+        />
       )}
 
-      {/*cambiamos el estado del sistema*/}
       <button
         onClick={() => setActivo(!activo)}
         className="mt-4 rounded-lg bg-blue-600 px-4 py-2 text-white"
@@ -179,20 +167,22 @@ export default function PaginaDashboard() {
         Cambiar estado
       </button>
 
-      {/*mostramos la carga o el error*/}
       {cargando && (
-        <p className="mt-6 text-slate-600" role="status">
-          Cargando métricas...
-        </p>
+        <section
+          className="mt-8 grid grid-cols-1 gap-4 md:grid-cols-2"
+          aria-label="Cargando métricas"
+        >
+          {Array.from({ length: 4 }, (_, indice) => (
+            <SkeletonMetricCard key={indice} />
+          ))}
+        </section>
       )}
 
       {error && (
-        <div
-          className="mt-6 rounded-lg bg-rose-100 p-4 text-rose-700"
-          role="alert"
-        >
-          <p>{error}</p>
+        <div className="mt-6">
+          <AlertaBanner tipo="error" mensaje={error} />
           <button
+            type="button"
             onClick={() => window.location.reload()}
             className="mt-2 rounded-lg bg-rose-600 px-4 py-2 text-white"
           >
@@ -201,7 +191,6 @@ export default function PaginaDashboard() {
         </div>
       )}
 
-      {/*mostramos las métricas*/}
       {!cargando && !error && (
         <section className="mt-8 grid grid-cols-1 gap-4 md:grid-cols-2">
           {metricas.map((metrica) => (
@@ -210,13 +199,12 @@ export default function PaginaDashboard() {
         </section>
       )}
 
-      {/*mostramos las citas*/}
       <section className="mt-8 rounded-xl bg-white p-6 shadow-sm">
         <h2 className="mb-4 text-xl font-semibold text-gray-900">
           Gestión de citas
         </h2>
 
-        {cargandoCitas && <p>Cargando citas...</p>}
+        {cargandoCitas && <Spinner mensaje="Cargando citas..." />}
 
         {!cargandoCitas && citas.length === 0 && (
           <p className="text-gray-500">No hay citas registradas.</p>
