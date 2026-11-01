@@ -66,6 +66,17 @@ export default function Layout() {
           </NavLink>
 
           <NavLink
+            to="/historial"
+            className={({ isActive }) =>
+              `rounded-lg px-4 py-3 ${
+                isActive ? 'bg-blue-600' : 'hover:bg-slate-700'
+              }`
+            }
+          >
+            📋 Historial de citas
+          </NavLink>
+
+          <NavLink
             to="/reportes"
             className={({ isActive }) =>
               `rounded-lg px-4 py-3 ${

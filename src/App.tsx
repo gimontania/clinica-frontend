@@ -10,6 +10,7 @@ import PaginaLogin from './components/PaginaLogin';
 import RutaProtegida from './components/RutaProtegida';
 import PaginaSinAcceso from './components/PaginaSinAcceso';
 import PaginaPerfil from './components/PaginaPerfil';
+import PaginaHistorialCitas from './components/PaginaHistorialCitas';
 
 function App() {
   return (
@@ -28,6 +29,10 @@ function App() {
             element={<PaginaDetallePaciente />}
           />
           <Route path="/citas/nueva" element={<FormularioCita />} />
+          <Route
+            path="/historial"
+            element={<PaginaHistorialCitas />}
+          />
 
           <Route
             element={
